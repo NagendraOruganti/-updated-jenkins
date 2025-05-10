@@ -12,53 +12,20 @@ pipeline {
     }
 
     stages {
-
         stage('Retrieve AWS Credentials from Secrets Manager') {
-
             steps {
-
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials-id']]) {
-
-                    script {
-
-                        // Use PowerShell to retrieve the plain text secret
-
-                        def secretValue = powershell(
-
-                            script: """
-
-                                aws secretsmanager get-secret-value --secret-id ${SECRET_NAME} --query 'SecretString' --output text --region ${AWS_REGION}
-
-                            """,
-
-                            returnStdout: true
-
-                        ).trim()
+                script {
+                    // Retrieve the secret as plain text (JSON object)
+                    def secretValue = sh(script: "aws secretsmanager get-secret-value --secret-id ${SECRET_NAME} --query 'SecretString' --output text --region ${AWS_REGION}", returnStdout: true).trim()
+                    // Parse the JSON to get the key-value pair
+                    def jsonSlurper = new groovy.json.JsonSlurper()
+                    def credentials = jsonSlurper.parseText(secretValue)
  
-                        // Since the secret is plain text, split it to extract the keys
-
-                        def keyValuePattern = /\{?"([A-Z0-9]+)":\s?"([A-Za-z0-9+\/=]+)"\}?/
-
-                        def matcher = (secretValue =~ keyValuePattern)
-
-                        if (matcher.matches()) {
-
-                            env.AWS_ACCESS_KEY_ID = matcher[0][1] // Extracted AWS_ACCESS_KEY_ID
-
-                            env.AWS_SECRET_ACCESS_KEY = matcher[0][2] // Extracted AWS_SECRET_ACCESS_KEY
-
-                        } else {
-
-                            error("Failed to extract AWS credentials from secret.")
-
-                        }
-
-                    }
-
+                    // Extract the AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+                    env.AWS_ACCESS_KEY_ID = credentials.keySet().iterator().next()  // The key (AWS_ACCESS_KEY_ID)
+                    env.AWS_SECRET_ACCESS_KEY = credentials[env.AWS_ACCESS_KEY_ID]  // The value (AWS_SECRET_ACCESS_KEY)
                 }
-
             }
-
         }
  
 
