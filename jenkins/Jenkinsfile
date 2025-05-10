@@ -2,12 +2,12 @@ pipeline {
     agent any
 
     environment {
-        S3_BUCKET = 'my-s3-bucket-for-jenkins-pipeline-setup'
+        S3_BUCKET = 'apps-project'
         S3_KEY = 'my-app.zip'
-        ENVIRONMENT_NAME = 'Test-env-env-en'
-        APPLICATION_NAME = 'test-env'
+        ENVIRONMENT_NAME = 'Firstproject-env'
+        APPLICATION_NAME = 'Firstproject'
         AWS_REGION = 'us-east-1'
-        SECRET_NAME = 'secret-jenkins-access'  // Replace with your actual secret name
+        SECRET_NAME = 'jenkins-aws-creds'  // Replace with your actual secret name
         VERSION_LABEL = "app-version-${BUILD_NUMBER}"
     }
 
@@ -31,7 +31,7 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/ManojKamatam/Beanstalk_Deployments_maintainingVersions-SecretManager.git', branch: 'main'
+                git url: 'https://github.com/NagendraOruganti/-updated-jenkins.git', branch: 'main'
             }
         }
         
