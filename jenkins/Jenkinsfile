@@ -12,52 +12,146 @@ pipeline {
     }
 
     stages {
+
+        stage('Retrieve AWS Credentials from Secrets Manager') {
+
+            steps {
+
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-configure']]) {
+
+                    script {
+
+                        // Use PowerShell to retrieve the plain text secret
+
+                        def secretValue = powershell(
+
+                            script: """
+
+                                aws secretsmanager get-secret-value --secret-id ${SECRET_NAME} --query 'SecretString' --output text --region ${AWS_REGION}
+
+                            """,
+
+                            returnStdout: true
+
+                        ).trim()
+ 
+                        // Since the secret is plain text, split it to extract the keys
+
+                        def keyValuePattern = /\{?"([A-Z0-9]+)":\s?"([A-Za-z0-9+\/=]+)"\}?/
+
+                        def matcher = (secretValue =~ keyValuePattern)
+
+                        if (matcher.matches()) {
+
+                            env.AWS_ACCESS_KEY_ID = matcher[0][1] // Extracted AWS_ACCESS_KEY_ID
+
+                            env.AWS_SECRET_ACCESS_KEY = matcher[0][2] // Extracted AWS_SECRET_ACCESS_KEY
+
+                        } else {
+
+                            error("Failed to extract AWS credentials from secret.")
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+ 
         stage('Checkout') {
+
             steps {
-                git url: 'https://github.com/NagendraOruganti/-updated-jenkins.git', branch: 'main'
+
+                git url: 'https://github.com/ManojKamatam/Windows_Based_beanstalk_deployment.git', branch: 'main'
+
             }
+
         }
-        
+ 
         stage('Upload to S3') {
-            steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-configure']]) {
-                    sh "aws s3 cp application.zip s3://${S3_BUCKET}/${S3_KEY} --region ${AWS_REGION}"
-                }
-            }
-        }
 
+            steps {
+
+                bat """
+
+                    set AWS_ACCESS_KEY_ID=${env.AWS_ACCESS_KEY_ID}
+
+                    set AWS_SECRET_ACCESS_KEY=${env.AWS_SECRET_ACCESS_KEY}
+
+                    aws s3 cp application.zip s3://${S3_BUCKET}/${S3_KEY} --region ${AWS_REGION}
+
+                """
+
+            }
+
+        }
+ 
         stage('Create Application Version') {
-            steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-configure']]) {
-                    sh """
-                        aws elasticbeanstalk create-application-version \
-                        --application-name ${APPLICATION_NAME} \
-                        --version-label ${VERSION_LABEL} \
-                        --source-bundle S3Bucket=${S3_BUCKET},S3Key=${S3_KEY} \
-                        --region ${AWS_REGION}
-                    """
-                }
-            }
-        }
 
+            steps {
+
+                bat """
+
+                    set AWS_ACCESS_KEY_ID=${env.AWS_ACCESS_KEY_ID}
+
+                    set AWS_SECRET_ACCESS_KEY=${env.AWS_SECRET_ACCESS_KEY}
+
+                    aws elasticbeanstalk create-application-version ^
+
+                    --application-name ${APPLICATION_NAME} ^
+
+                    --version-label ${VERSION_LABEL} ^
+
+                    --source-bundle S3Bucket=${S3_BUCKET},S3Key=${S3_KEY} ^
+
+                    --region ${AWS_REGION}
+
+                """
+
+            }
+
+        }
+ 
         stage('Update Elastic Beanstalk Environment') {
+
             steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-configure']]) {
-                    sh """
-                        aws elasticbeanstalk update-environment \
-                          --application-name ${APPLICATION_NAME} \
-                          --environment-name ${ENVIRONMENT_NAME} \
-                          --version-label ${VERSION_LABEL} \
-                          --region ${AWS_REGION}
-                    """
-                }
+
+                bat """
+
+                    set AWS_ACCESS_KEY_ID=${env.AWS_ACCESS_KEY_ID}
+
+                    set AWS_SECRET_ACCESS_KEY=${env.AWS_SECRET_ACCESS_KEY}
+
+                    aws elasticbeanstalk update-environment ^
+
+                    --application-name ${APPLICATION_NAME} ^
+
+                    --environment-name ${ENVIRONMENT_NAME} ^
+
+                    --version-label ${VERSION_LABEL} ^
+
+                    --region ${AWS_REGION}
+
+                """
+
             }
+
         }
+
+    }
+ 
+    post {
+
+        always {
+
+            echo 'Deployment process completed.'
+
+        }
+
     }
 
-    post {
-        always {
-            echo 'Deployment process completed.'
-        }
-    }
 }
+ 
