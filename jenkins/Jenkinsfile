@@ -65,7 +65,7 @@ pipeline {
 
             steps {
 
-                git url: 'https://github.com/ManojKamatam/Windows_Based_beanstalk_deployment.git', branch: 'main'
+                git url: 'https://github.com/NagendraOruganti/-updated-jenkins.git', branch: 'main'
 
             }
 
