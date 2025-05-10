@@ -17,11 +17,12 @@ pipeline {
                 script {
                     // Retrieve the secret as plain text (JSON object)
                     def secretValue = sh(script: "aws secretsmanager get-secret-value --secret-id ${SECRET_NAME} --query 'SecretString' --output text --region ${AWS_REGION}", returnStdout: true).trim()
-                    
+
                     // Parse the JSON to get the key-value pair
                     def jsonSlurper = new groovy.json.JsonSlurper()
                     def credentials = jsonSlurper.parseText(secretValue)
 
+                    // Extract the AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY directly
                     env.AWS_ACCESS_KEY_ID = credentials.AWS_ACCESS_KEY_ID
                     env.AWS_SECRET_ACCESS_KEY = credentials.AWS_SECRET_ACCESS_KEY
                 }
@@ -33,7 +34,7 @@ pipeline {
                 git url: 'https://github.com/NagendraOruganti/-updated-jenkins.git', branch: 'main'
             }
         }
-        
+
         stage('Upload to S3') {
             steps {
                 sh "aws s3 cp application.zip s3://${S3_BUCKET}/${S3_KEY} --region ${AWS_REGION}"
