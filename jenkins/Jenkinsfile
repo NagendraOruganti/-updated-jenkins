@@ -67,56 +67,36 @@ pipeline {
         }
  
         stage('Create Application Version') {
-
             steps {
-
                 bat """
-
                     set AWS_ACCESS_KEY_ID=${env.AWS_ACCESS_KEY_ID}
-
                     set AWS_SECRET_ACCESS_KEY=${env.AWS_SECRET_ACCESS_KEY}
-
                     aws elasticbeanstalk create-application-version ^
-
                     --application-name ${APPLICATION_NAME} ^
-
                     --version-label ${VERSION_LABEL} ^
-
                     --source-bundle S3Bucket=${S3_BUCKET},S3Key=${S3_KEY} ^
-
                     --region ${AWS_REGION}
-
                 """
-
             }
+        }
+
 
         }
  
         stage('Update Elastic Beanstalk Environment') {
-
             steps {
-
                 bat """
-
                     set AWS_ACCESS_KEY_ID=${env.AWS_ACCESS_KEY_ID}
-
                     set AWS_SECRET_ACCESS_KEY=${env.AWS_SECRET_ACCESS_KEY}
-
                     aws elasticbeanstalk update-environment ^
-
                     --application-name ${APPLICATION_NAME} ^
-
                     --environment-name ${ENVIRONMENT_NAME} ^
-
                     --version-label ${VERSION_LABEL} ^
-
                     --region ${AWS_REGION}
-
                 """
-
             }
-
         }
+
 
     }
  
