@@ -11,23 +11,31 @@ pipeline {
         VERSION_LABEL = "app-version-${BUILD_NUMBER}"
     }
 
-    script {
-    def secretValue = powershell(
-        script: """
-            aws secretsmanager get-secret-value --secret-id ${SECRET_NAME} --query 'SecretString' --output text --region ${AWS_REGION}
-        """,
-        returnStdout: true
-    ).trim()
+    stages {
+        stage('Retrieve AWS Credentials from Secrets Manager') {
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials-id']]) {
+                    script {
+                        def secretValue = powershell(
+                            script: """
+                                aws secretsmanager get-secret-value --secret-id ${SECRET_NAME} --query 'SecretString' --output text --region ${AWS_REGION}
+                            """,
+                            returnStdout: true
+                        ).trim()
+                    
+                        def json = new groovy.json.JsonSlurper().parseText(secretValue)
+                    
+                        if (json.AWS_ACCESS_KEY_ID && json.AWS_SECRET_ACCESS_KEY) {
+                            env.AWS_ACCESS_KEY_ID = json.AWS_ACCESS_KEY_ID
+                            env.AWS_SECRET_ACCESS_KEY = json.AWS_SECRET_ACCESS_KEY
+                        } else {
+                            error("Missing keys in AWS Secrets Manager response.")
+                        }
+                    }
 
-    def json = new groovy.json.JsonSlurper().parseText(secretValue)
-
-    if (json.AWS_ACCESS_KEY_ID && json.AWS_SECRET_ACCESS_KEY) {
-        env.AWS_ACCESS_KEY_ID = json.AWS_ACCESS_KEY_ID
-        env.AWS_SECRET_ACCESS_KEY = json.AWS_SECRET_ACCESS_KEY
-    } else {
-        error("Missing keys in AWS Secrets Manager response.")
-    }
-}
+                }
+            }
+        }
 
  
         stage('Checkout') {
