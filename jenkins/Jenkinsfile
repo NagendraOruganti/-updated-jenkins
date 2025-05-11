@@ -57,12 +57,13 @@ pipeline {
                 bat """
                     set AWS_ACCESS_KEY_ID=${env.AWS_ACCESS_KEY_ID}
                     set AWS_SECRET_ACCESS_KEY=${env.AWS_SECRET_ACCESS_KEY}
-                    aws elasticbeanstalk create-application-version ^
+                    aws elasticbeanstalk delete-application-version ^
                     --application-name ${APPLICATION_NAME} ^
                     --version-label ${VERSION_LABEL} ^
-                    --source-bundle S3Bucket=${S3_BUCKET},S3Key=${S3_KEY} ^
-                    --region ${AWS_REGION}
+                    --region ${AWS_REGION} ^
+                    --no-delete-source-bundle || exit 0
                 """
+
             }
         }
 
