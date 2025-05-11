@@ -14,7 +14,7 @@ pipeline {
     stages {
         stage('Retrieve AWS Credentials from Secrets Manager') {
             steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials-id']]) {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-configure']]) {
                     script {
                         def secretValue = powershell(
                             script: """
