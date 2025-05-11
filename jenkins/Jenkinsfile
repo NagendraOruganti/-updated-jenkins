@@ -11,55 +11,24 @@ pipeline {
         VERSION_LABEL = "app-version-${BUILD_NUMBER}"
     }
 
-    stages {
+    script {
+    def secretValue = powershell(
+        script: """
+            aws secretsmanager get-secret-value --secret-id ${SECRET_NAME} --query 'SecretString' --output text --region ${AWS_REGION}
+        """,
+        returnStdout: true
+    ).trim()
 
-        stage('Retrieve AWS Credentials from Secrets Manager') {
+    def json = new groovy.json.JsonSlurper().parseText(secretValue)
 
-            steps {
+    if (json.AWS_ACCESS_KEY_ID && json.AWS_SECRET_ACCESS_KEY) {
+        env.AWS_ACCESS_KEY_ID = json.AWS_ACCESS_KEY_ID
+        env.AWS_SECRET_ACCESS_KEY = json.AWS_SECRET_ACCESS_KEY
+    } else {
+        error("Missing keys in AWS Secrets Manager response.")
+    }
+}
 
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-configure']]) {
-
-                    script {
-
-                        // Use PowerShell to retrieve the plain text secret
-
-                        def secretValue = powershell(
-
-                            script: """
-
-                                aws secretsmanager get-secret-value --secret-id ${SECRET_NAME} --query 'SecretString' --output text --region ${AWS_REGION}
-
-                            """,
-
-                            returnStdout: true
-
-                        ).trim()
- 
-                        // Since the secret is plain text, split it to extract the keys
-
-                        def keyValuePattern = /\{?"([A-Z0-9]+)":\s?"([A-Za-z0-9+\/=]+)"\}?/
-
-                        def matcher = (secretValue =~ keyValuePattern)
-
-                        if (matcher.matches()) {
-
-                            env.AWS_ACCESS_KEY_ID = matcher[0][1] // Extracted AWS_ACCESS_KEY_ID
-
-                            env.AWS_SECRET_ACCESS_KEY = matcher[0][2] // Extracted AWS_SECRET_ACCESS_KEY
-
-                        } else {
-
-                            error("Failed to extract AWS credentials from secret.")
-
-                        }
-
-                    }
-
-                }
-
-            }
-
-        }
  
         stage('Checkout') {
 
