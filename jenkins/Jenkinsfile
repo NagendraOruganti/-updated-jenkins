@@ -7,7 +7,7 @@ pipeline {
         ENVIRONMENT_NAME = 'Firstproject-env'
         APPLICATION_NAME = 'Firstproject'
         AWS_REGION = 'us-east-1'
-        SECRET_NAME = 'jenkins-aws-creds'  // Replace with your actual secret name
+        SECRET_NAME = 'jenkins-aws-creds'
         VERSION_LABEL = "app-version-${BUILD_NUMBER}"
     }
 
@@ -22,9 +22,9 @@ pipeline {
                             """,
                             returnStdout: true
                         ).trim()
-                    
+
                         def json = new groovy.json.JsonSlurper().parseText(secretValue)
-                    
+
                         if (json.AWS_ACCESS_KEY_ID && json.AWS_SECRET_ACCESS_KEY) {
                             env.AWS_ACCESS_KEY_ID = json.AWS_ACCESS_KEY_ID
                             env.AWS_SECRET_ACCESS_KEY = json.AWS_SECRET_ACCESS_KEY
@@ -32,40 +32,26 @@ pipeline {
                             error("Missing keys in AWS Secrets Manager response.")
                         }
                     }
-
                 }
             }
         }
 
- 
         stage('Checkout') {
-
             steps {
-
                 git url: 'https://github.com/NagendraOruganti/-updated-jenkins.git', branch: 'main'
-
             }
-
         }
- 
+
         stage('Upload to S3') {
-
             steps {
-
                 bat """
-
                     set AWS_ACCESS_KEY_ID=${env.AWS_ACCESS_KEY_ID}
-
                     set AWS_SECRET_ACCESS_KEY=${env.AWS_SECRET_ACCESS_KEY}
-
                     aws s3 cp application.zip s3://${S3_BUCKET}/${S3_KEY} --region ${AWS_REGION}
-
                 """
-
             }
-
         }
- 
+
         stage('Create Application Version') {
             steps {
                 bat """
@@ -80,9 +66,6 @@ pipeline {
             }
         }
 
-
-        }
- 
         stage('Update Elastic Beanstalk Environment') {
             steps {
                 bat """
@@ -96,17 +79,11 @@ pipeline {
                 """
             }
         }
-
- 
-    post {
-
-        always {
-
-            echo 'Deployment process completed.'
-
-        }
-
     }
 
+    post {
+        always {
+            echo 'Deployment process completed.'
+        }
+    }
 }
- 
